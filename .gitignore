@@ -227,7 +227,7 @@ pids
 *.pid.lock
 
 # Docker
-.dockerignore
+# Note: .dockerignore files should be versioned, not ignored
 
 # IDE
 .vscode/
