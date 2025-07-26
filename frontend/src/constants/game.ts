@@ -76,6 +76,9 @@ export const CSS_CLASSES = {
   GAME_CELL_LETTER: 'cell-letter',
   GAME_CELL_PATH: 'cell-path',
   GAME_CELL_SELECTED: 'cell-selected',
+  GAME_CELL_START: 'cell-start',
+  GAME_CELL_END: 'cell-end',
+  GAME_CELL_CONNECTED: 'cell-connected',
   GAME_PATH: 'game-path',
   GAME_COMPLETED: 'game-completed',
 } as const;
