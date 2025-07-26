@@ -1,0 +1,65 @@
+.App {
+  text-align: center;
+}
+
+.App-header {
+  background-color: #282c34;
+  padding: 20px;
+  color: white;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+}
+
+h1 {
+  margin: 0.5em 0;
+  color: #61dafb;
+}
+
+.status-panel {
+  background-color: #3a3f47;
+  padding: 20px;
+  border-radius: 10px;
+  margin: 20px 0;
+  max-width: 400px;
+}
+
+.status-panel h3 {
+  margin-top: 0;
+  color: #61dafb;
+  font-size: 1.2em;
+}
+
+.status-panel p {
+  margin: 10px 0;
+  font-size: 0.9em;
+}
+
+.api-response {
+  background-color: #4a5568;
+  padding: 10px;
+  border-radius: 5px;
+  margin-top: 10px;
+}
+
+.game-placeholder {
+  background-color: #2d3748;
+  padding: 30px;
+  border-radius: 15px;
+  margin: 20px 0;
+  max-width: 500px;
+  border: 2px dashed #61dafb;
+}
+
+.game-placeholder h3 {
+  color: #ffd700;
+  margin-top: 0;
+}
+
+.game-placeholder p {
+  color: #cbd5e0;
+  font-size: 0.9em;
+}
