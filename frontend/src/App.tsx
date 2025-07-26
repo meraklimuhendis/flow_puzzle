@@ -1,56 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import './App.css';
-
-interface ApiResponse {
-  message: string;
-  data?: any;
-}
+import React from 'react';
 
 function App() {
-  const [apiStatus, setApiStatus] = useState<string>('Checking...');
-  const [apiResponse, setApiResponse] = useState<ApiResponse | null>(null);
-
-  useEffect(() => {
-    // Test API connection
+  const [apiStatus, setApiStatus] = React.useState('Checking...');
+  
+  React.useEffect(() => {
     const testApi = async () => {
       try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-        const response = await fetch(`${apiUrl}/api/test`);
+        const response = await fetch('/api/test');
         const data = await response.json();
-        setApiResponse(data);
-        setApiStatus('Connected ✅');
+        setApiStatus(' API Connected: ' + data.message);
       } catch (error) {
-        console.error('API connection failed:', error);
-        setApiStatus('Failed ❌');
+        console.error('API Error:', error);
+        setApiStatus(' API Failed');
       }
     };
-
+    
     testApi();
   }, []);
 
-  return (
-    <div className="App">
-      <header className="App-header">
-        <h1>🎮 Flow Puzzle</h1>
-        <p>Connect the colored letters to solve the puzzle!</p>
-        
-        <div className="status-panel">
-          <h3>System Status</h3>
-          <p><strong>API Status:</strong> {apiStatus}</p>
-          {apiResponse && (
-            <div className="api-response">
-              <p><strong>API Response:</strong> {apiResponse.message}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="game-placeholder">
-          <h3>🚧 Game Coming Soon...</h3>
-          <p>Docker container yapısı test ediliyor</p>
-        </div>
-      </header>
-    </div>
-  );
+  return React.createElement('div', { style: { padding: '20px', textAlign: 'center' } }, [
+    React.createElement('h1', { key: 'title' }, ' Flow Puzzle'),
+    React.createElement('p', { key: 'desc' }, 'Flow Puzzle oyunu geliştirme ortamı başarıyla kuruldu!'),
+    React.createElement('div', { 
+      key: 'status',
+      style: { 
+        background: '#f0f0f0', 
+        padding: '15px', 
+        borderRadius: '8px',
+        margin: '20px 0'
+      }
+    }, [
+      React.createElement('h3', { key: 'status-title' }, 'System Status'),
+      React.createElement('p', { key: 'react-status' }, ' React.js çalışıyor'),
+      React.createElement('p', { key: 'ts-status' }, ' TypeScript çalışıyor'),
+      React.createElement('p', { key: 'docker-status' }, ' Docker Container çalışıyor'),
+      React.createElement('p', { key: 'api-status' }, apiStatus)
+    ])
+  ]);
 }
 
 export default App;
