@@ -9,7 +9,7 @@ services:
       - "3000:3000"
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - flow_puzzle_production_frontend_node_modules:/app/node_modules
     environment:
       - REACT_APP_API_URL=http://localhost:8000
     depends_on:
@@ -25,15 +25,19 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
+      - flow_puzzle_production_backend_cache:/app/__pycache__
     environment:
-      - ENVIRONMENT=development
+      - ENVIRONMENT=production
       - CORS_ORIGINS=http://localhost:3000
     networks:
       - flow_puzzle_network
 
+volumes:
+  flow_puzzle_production_frontend_node_modules:
+    name: flow_puzzle_production_frontend_node_modules
+  flow_puzzle_production_backend_cache:
+    name: flow_puzzle_production_backend_cache
+
 networks:
   flow_puzzle_network:
     driver: bridge
-
-volumes:
-  node_modules:
