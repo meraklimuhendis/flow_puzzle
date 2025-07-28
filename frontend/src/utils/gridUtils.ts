@@ -50,53 +50,53 @@ export const createSampleGrid = (
     { letter: 'C', color: GAME_CONFIG.LETTER_COLORS[2] }, // Blue
   ];
 
-  // Place letter pairs on the grid
+  // Place letter pairs on the grid - Optimal kesişmeyen yerleşim
   if (dimensions.width >= 5 && dimensions.height >= 5) {
-    // Pair A: corners
-    grid.cells[0][0] = {
-      ...grid.cells[0][0],
+    // Pair A: (3,0) ve (0,1) - L şeklinde path
+    grid.cells[0][3] = {
+      ...grid.cells[0][3],
       type: CellType.LETTER,
       letter: 'A',
       color: letterPairs[0].color,
       isStart: true,
     };
     
-    grid.cells[4][4] = {
-      ...grid.cells[4][4],
+    grid.cells[1][0] = {
+      ...grid.cells[1][0],
       type: CellType.LETTER,
       letter: 'A',
       color: letterPairs[0].color,
       isEnd: true,
     };
 
-    // Pair B: middle positions
+    // Pair B: (4,0) ve (1,1) - L şeklinde path
+    grid.cells[0][4] = {
+      ...grid.cells[0][4],
+      type: CellType.LETTER,
+      letter: 'B',
+      color: letterPairs[1].color,
+      isStart: true,
+    };
+    
     grid.cells[1][1] = {
       ...grid.cells[1][1],
       type: CellType.LETTER,
       letter: 'B',
       color: letterPairs[1].color,
-      isStart: true,
-    };
-    
-    grid.cells[3][3] = {
-      ...grid.cells[3][3],
-      type: CellType.LETTER,
-      letter: 'B',
-      color: letterPairs[1].color,
       isEnd: true,
     };
 
-    // Pair C: edge positions
-    grid.cells[2][0] = {
-      ...grid.cells[2][0],
+    // Pair C: (3,2) ve (1,4) - D yerine C kullanıyoruz (sadece 3 çiftimiz var)
+    grid.cells[2][3] = {
+      ...grid.cells[2][3],
       type: CellType.LETTER,
       letter: 'C',
       color: letterPairs[2].color,
       isStart: true,
     };
     
-    grid.cells[2][4] = {
-      ...grid.cells[2][4],
+    grid.cells[4][1] = {
+      ...grid.cells[4][1],
       type: CellType.LETTER,
       letter: 'C',
       color: letterPairs[2].color,
