@@ -35,34 +35,34 @@ export const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 
 const EASY_LEVELS: CellData[][][] = [
   [
-    [{ letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: 'A', colorIndex: 0 }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: 'D', colorIndex: 3 }],
+    [{ letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'A', colorIndex: 0 }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }],
+    [{ letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }],
   ],
 ];
 
 const MEDIUM_LEVELS: CellData[][][] = [
   [
-    [{ letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }],
-    [{ letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'E', colorIndex: 4 }],
-    [{ letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: 'A', colorIndex: 0 }, { letter: 'B', colorIndex: 1 }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: 'E', colorIndex: 4 }, { letter: null, colorIndex: null }],
+    [{ letter: 'E', colorIndex: 4 }, { letter: null, colorIndex: null }, { letter: 'E', colorIndex: 4 }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'A', colorIndex: 0 }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }, { letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }],
   ],
 ];
 
 const HARD_LEVELS: CellData[][][] = [
   [
-    [{ letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'E', colorIndex: 4 }, { letter: null, colorIndex: null }],
+    [{ letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'E', colorIndex: 4 }],
     [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'F', colorIndex: 5 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'F', colorIndex: 5 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: 'A', colorIndex: 0 }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: 'E', colorIndex: 4 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
+    [{ letter: 'F', colorIndex: 5 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'E', colorIndex: 4 }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
+    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }],
   ],
 ];
 
