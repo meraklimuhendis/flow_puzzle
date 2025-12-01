@@ -1,9 +1,13 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import DifficultySelector from './DifficultySelector';
 import Grid from './Grid';
-import Timer from './Timer';
+import Timer, { formatTime } from './Timer';
+import { Button } from '@/components/ui/button';
 import { Difficulty, getLevel } from '@/logic/levels';
 import { GameState, createInitialGameState } from '@/logic/gameEngine';
+import { Play } from 'lucide-react';
+
+type GamePhase = 'not-started' | 'playing' | 'completed';
 
 export default function FlowPuzzle() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
@@ -12,13 +16,30 @@ export default function FlowPuzzle() {
     createInitialGameState(level)
   );
   const [key, setKey] = useState(0);
+  const [gamePhase, setGamePhase] = useState<GamePhase>('not-started');
+  const [time, setTime] = useState(0);
+  const [finalTime, setFinalTime] = useState(0);
+  const prevSolvedRef = useRef(false);
 
   useEffect(() => {
     const newLevel = getLevel(difficulty);
     setLevel(newLevel);
     setGameState(createInitialGameState(newLevel));
     setKey((k) => k + 1);
+    setGamePhase('not-started');
+    setTime(0);
+    setFinalTime(0);
+    prevSolvedRef.current = false;
   }, [difficulty]);
+
+  // Detect puzzle completion
+  useEffect(() => {
+    if (gameState.isSolved && !prevSolvedRef.current && gamePhase === 'playing') {
+      prevSolvedRef.current = true;
+      setFinalTime(time);
+      setGamePhase('completed');
+    }
+  }, [gameState.isSolved, gamePhase, time]);
 
   const handleDifficultyChange = useCallback((newDifficulty: Difficulty) => {
     setDifficulty(newDifficulty);
@@ -28,12 +49,28 @@ export default function FlowPuzzle() {
     setGameState(newState);
   }, []);
 
+  const handleStart = useCallback(() => {
+    setGamePhase('playing');
+    setTime(0);
+  }, []);
+
   const handleReset = useCallback(() => {
     const newLevel = getLevel(difficulty);
     setLevel(newLevel);
     setGameState(createInitialGameState(newLevel));
     setKey((k) => k + 1);
+    setGamePhase('not-started');
+    setTime(0);
+    setFinalTime(0);
+    prevSolvedRef.current = false;
   }, [difficulty]);
+
+  const handleTimeUpdate = useCallback((newTime: number) => {
+    setTime(newTime);
+  }, []);
+
+  const isTimerRunning = gamePhase === 'playing';
+  const isGamePlayable = gamePhase === 'playing';
 
   return (
     <div
@@ -53,37 +90,75 @@ export default function FlowPuzzle() {
         <DifficultySelector
           currentDifficulty={difficulty}
           onSelect={handleDifficultyChange}
-          disabled={gameState.isDrawing}
+          disabled={gamePhase === 'playing'}
         />
 
         <div className="relative" data-testid="grid-container">
-          <Grid
-            key={key}
-            level={level}
-            gameState={gameState}
-            onGameStateChange={handleGameStateChange}
-          />
+          <div className={gamePhase === 'not-started' ? 'blur-sm pointer-events-none' : ''}>
+            <Grid
+              key={key}
+              level={level}
+              gameState={gameState}
+              onGameStateChange={isGamePlayable ? handleGameStateChange : () => {}}
+            />
+          </div>
 
-          {gameState.isSolved && (
+          {/* Start Overlay */}
+          {gamePhase === 'not-started' && (
             <div
-              className="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 rounded-xl backdrop-blur-sm"
-              data-testid="victory-overlay"
+              className="absolute inset-0 flex items-center justify-center bg-white/60 dark:bg-gray-900/60 rounded-xl"
+              data-testid="start-overlay"
             >
-              <div className="text-center p-6">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <Button
+                size="lg"
+                onClick={handleStart}
+                className="px-8 py-6 text-lg"
+                data-testid="button-start-game"
+              >
+                <Play className="w-6 h-6 mr-3" />
+                Start
+              </Button>
+            </div>
+          )}
+
+          {/* Completion Popup */}
+          {gamePhase === 'completed' && (
+            <div
+              className="absolute inset-0 flex items-center justify-center bg-white/90 dark:bg-gray-900/90 rounded-xl backdrop-blur-sm"
+              data-testid="completion-overlay"
+            >
+              <div className="text-center p-8">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <p className="text-xl font-bold text-green-600 dark:text-green-400">
-                  Puzzle Solved!
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mb-2" data-testid="text-puzzle-completed">
+                  Puzzle Completed!
                 </p>
+                <p className="text-xl font-semibold text-foreground mb-6" data-testid="text-final-time">
+                  Time: {formatTime(finalTime)}
+                </p>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={handleReset}
+                  data-testid="button-play-again"
+                >
+                  Play Again
+                </Button>
               </div>
             </div>
           )}
         </div>
 
-        <Timer isPuzzleSolved={gameState.isSolved} onReset={handleReset} />
+        <Timer
+          time={time}
+          isRunning={isTimerRunning}
+          onTimeUpdate={handleTimeUpdate}
+          onReset={handleReset}
+          showReset={gamePhase === 'playing'}
+        />
       </div>
     </div>
   );
