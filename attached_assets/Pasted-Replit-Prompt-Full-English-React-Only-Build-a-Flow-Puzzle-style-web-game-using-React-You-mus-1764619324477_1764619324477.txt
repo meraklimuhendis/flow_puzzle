@@ -1,0 +1,147 @@
+Replit Prompt (Full English + React Only)
+
+Build a Flow Puzzle style web game using React. You must act as a UI/UX expert and a modern front-end engineer. Follow every rule and requirement below exactly.
+
+🎮 Game Definition
+
+Create a Flow Puzzle game where the player connects two matching letters of the same color by drawing a continuous path on the grid. Paths cannot intersect. The puzzle is completed when all pairs are connected.
+
+⭐ Difficulty Levels
+
+There will be three difficulty levels:
+
+Easy: 5x5 grid, 4 pairs of letters
+
+Medium: 6x6 grid, 5 pairs
+
+Hard: 7x7 grid, 6 pairs
+
+Difficulty selector must be placed at the top:
+Easy | Medium | Hard
+
+When selected, display only that puzzle centered on the page.
+
+🧩 UI Guidelines (IMPORTANT)
+
+Design the UI as if you are building a premium puzzle game. Requirements:
+
+Fully centered puzzle grid
+
+Rounded square tiles (not sharp squares)
+
+Colored letter cells, empty tiles stay white
+
+Pastel colors and modern style
+
+Soft shadows
+
+Smooth transitions and animations
+
+Fluid drawing interaction
+
+Fully responsive for both desktop and mobile
+
+Touch + mouse drawing support
+
+Apple / Flow Free inspired design
+
+The UI must look clean, minimalistic, and modern.
+
+🧠 Interaction Rules
+
+User drags from a letter cell to draw a path
+
+If the path is valid, keep it
+
+If the path is invalid, remove it
+
+If a new path crosses an old one, replace the old one
+
+When all paths are complete:
+
+The puzzle is solved
+
+The timer is automatically paused
+
+⏱ Timer Rules
+
+Place the timer under the puzzle.
+It must have:
+
+Start
+
+Pause
+
+Reset
+
+When puzzle is solved:
+
+Automatically stop the timer
+
+🧱 Required Implementation
+
+This MUST be written in React only (no Vanilla JS).
+
+Use proper component structure:
+
+/src
+  /components
+    Grid.jsx
+    Tile.jsx
+    Timer.jsx
+    DifficultySelector.jsx
+  /logic
+    gameEngine.js   // connection rules, validation
+    levels.js       // level definitions
+  App.jsx
+  index.jsx
+  style.css
+
+
+No messy single-file implementation.
+Clean code, modular design.
+
+📱 Responsive Requirements
+
+Puzzle should scale to fit mobile screens perfectly
+
+Smooth touch drawing
+
+Works in both portrait and landscape
+
+🧪 Level System
+
+You can use static sample levels for now.
+Each difficulty level must load its own puzzle layout.
+
+✨ Visual Theme
+
+Follow these style principles:
+
+Minimalistic
+
+Pastel colors
+
+Smooth and soft rounded shapes
+
+Light shadow depth
+
+No outdated styling
+
+No Bootstrap
+
+🚀 Final Requirement
+
+Deliver a fully working Flow Puzzle game in React.
+
+Complete code
+
+All components and logic included
+
+The result must run immediately when I press "Run"
+
+No placeholder text or unfinished parts
+
+No TODO comments
+
+If you understand these requirements, generate the entire working React project in Replit and produce all files and components in one output.
