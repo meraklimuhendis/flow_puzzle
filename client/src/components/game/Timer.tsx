@@ -12,13 +12,20 @@ export default function Timer({ isPuzzleSolved, onReset }: TimerProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [wasAutoStopped, setWasAutoStopped] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const wasRunningRef = useRef(false);
 
+  // Track running state in ref for puzzle solved detection
   useEffect(() => {
-    if (isPuzzleSolved && isRunning) {
+    wasRunningRef.current = isRunning;
+  }, [isRunning]);
+
+  // Auto-pause when puzzle is solved
+  useEffect(() => {
+    if (isPuzzleSolved && wasRunningRef.current) {
       setIsRunning(false);
       setWasAutoStopped(true);
     }
-  }, [isPuzzleSolved, isRunning]);
+  }, [isPuzzleSolved]);
 
   useEffect(() => {
     if (isRunning) {
