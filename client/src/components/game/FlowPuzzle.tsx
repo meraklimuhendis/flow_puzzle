@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import DifficultySelector from './DifficultySelector';
+import ModeSelector from './ModeSelector';
 import Grid from './Grid';
 import Timer, { formatTime } from './Timer';
 import { Button } from '@/components/ui/button';
-import { Difficulty, getLevel } from '@/logic/levels';
+import { Difficulty, GameMode, getLevel } from '@/logic/levels';
 import { GameState, createInitialGameState } from '@/logic/gameEngine';
 import { Play } from 'lucide-react';
 
@@ -11,6 +12,7 @@ type GamePhase = 'not-started' | 'playing' | 'completed';
 
 export default function FlowPuzzle() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
+  const [mode, setMode] = useState<GameMode>('letters');
   const [level, setLevel] = useState<any>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [key, setKey] = useState(0);
@@ -25,7 +27,7 @@ export default function FlowPuzzle() {
     const loadInitialLevel = async () => {
       setIsLoading(true);
       try {
-        const newLevel = await getLevel('easy');
+        const newLevel = await getLevel('easy', 'letters');
         setLevel(newLevel);
         setGameState(createInitialGameState(newLevel));
       } catch (error) {
@@ -37,12 +39,12 @@ export default function FlowPuzzle() {
     loadInitialLevel();
   }, []);
 
-  // Difficulty değiştiğinde
+  // Difficulty veya mode değiştiğinde
   useEffect(() => {
     const loadLevel = async () => {
       setIsLoading(true);
       try {
-        const newLevel = await getLevel(difficulty);
+        const newLevel = await getLevel(difficulty, mode);
         setLevel(newLevel);
         setGameState(createInitialGameState(newLevel));
         setKey((k) => k + 1);
@@ -57,7 +59,7 @@ export default function FlowPuzzle() {
       }
     };
     loadLevel();
-  }, [difficulty]);
+  }, [difficulty, mode]);
 
   // Detect puzzle completion
   useEffect(() => {
@@ -72,6 +74,10 @@ export default function FlowPuzzle() {
     setDifficulty(newDifficulty);
   }, []);
 
+  const handleModeChange = useCallback((newMode: GameMode) => {
+    setMode(newMode);
+  }, []);
+
   const handleGameStateChange = useCallback((newState: GameState) => {
     setGameState(newState);
   }, []);
@@ -84,7 +90,7 @@ export default function FlowPuzzle() {
   const handleReset = useCallback(async () => {
     setIsLoading(true);
     try {
-      const newLevel = await getLevel(difficulty);
+      const newLevel = await getLevel(difficulty, mode);
       setLevel(newLevel);
       setGameState(createInitialGameState(newLevel));
       setKey((k) => k + 1);
@@ -97,7 +103,7 @@ export default function FlowPuzzle() {
     } finally {
       setIsLoading(false);
     }
-  }, [difficulty]);
+  }, [difficulty, mode]);
 
   const handleTimeUpdate = useCallback((newTime: number) => {
     setTime(newTime);
@@ -132,6 +138,12 @@ export default function FlowPuzzle() {
             Connect matching letters without crossing paths
           </p>
         </div>
+
+        <ModeSelector
+          currentMode={mode}
+          onSelect={handleModeChange}
+          disabled={gamePhase === 'playing'}
+        />
 
         <DifficultySelector
           currentDifficulty={difficulty}

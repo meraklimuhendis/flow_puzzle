@@ -38,8 +38,11 @@ export function isAdjacent(a: PathSegment, b: PathSegment): boolean {
 
 export function isEndpoint(level: Level, row: number, col: number): { letter: string; colorIndex: number } | null {
   const cell = level.grid[row]?.[col];
-  if (cell?.letter && cell.colorIndex !== null) {
-    return { letter: cell.letter, colorIndex: cell.colorIndex };
+  // Endpoint hem letter hem de shape olabilir
+  if (cell && cell.colorIndex !== null && (cell.letter || cell.shape)) {
+    // Letter varsa letter kullan, yoksa shape key'ini kullan (örn: "shape_0", "shape_1")
+    const key = cell.letter || `shape_${cell.colorIndex}`;
+    return { letter: key, colorIndex: cell.colorIndex };
   }
   return null;
 }

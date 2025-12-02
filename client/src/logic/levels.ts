@@ -1,4 +1,6 @@
 export type Difficulty = 'easy' | 'medium' | 'hard';
+export type GameMode = 'letters' | 'shapes' | 'maze';
+export type ShapeType = 'circle' | 'triangle' | 'square' | 'star' | 'heart' | 'sun';
 
 export interface LevelConfig {
   gridSize: number;
@@ -7,6 +9,7 @@ export interface LevelConfig {
 
 export interface CellData {
   letter: string | null;
+  shape: ShapeType | null;
   colorIndex: number | null;
 }
 
@@ -26,9 +29,16 @@ export interface PuzzleConfig {
   [letter: string]: CoordinatePair[];
 }
 
+export interface ShapePuzzleConfig {
+  [shape: string]: {
+    type: ShapeType;
+    coordinates: CoordinatePair[];
+  };
+}
+
 export interface DifficultyLevels {
   letters: PuzzleConfig[];
-  shapes?: PuzzleConfig[];
+  shapes?: ShapePuzzleConfig[];
 }
 
 export interface LevelsJSON {
@@ -76,7 +86,7 @@ async function loadAllLevels(): Promise<LevelsJSON> {
   }
 }
 
-// Rastgele puzzle seç
+// Rastgele puzzle seç - letters için
 function getRandomPuzzleConfig(
   puzzles: PuzzleConfig[],
 ): PuzzleConfig {
@@ -84,14 +94,22 @@ function getRandomPuzzleConfig(
   return puzzles[randomIndex];
 }
 
-// Koordinatlardan grid oluştur
+// Rastgele puzzle seç - shapes için
+function getRandomShapePuzzleConfig(
+  puzzles: ShapePuzzleConfig[],
+): ShapePuzzleConfig {
+  const randomIndex = Math.floor(Math.random() * puzzles.length);
+  return puzzles[randomIndex];
+}
+
+// Koordinatlardan grid oluştur - letter mode
 function createGridFromEndpoints(
   puzzleConfig: PuzzleConfig,
   gridSize: number,
 ): { grid: CellData[][], endpoints: Map<string, { row: number; col: number }[]> } {
   // Boş grid oluştur
   const grid: CellData[][] = Array.from({ length: gridSize }, () =>
-    Array.from({ length: gridSize }, () => ({ letter: null, colorIndex: null }))
+    Array.from({ length: gridSize }, () => ({ letter: null, shape: null, colorIndex: null }))
   );
 
   const endpoints = new Map<string, { row: number; col: number }[]>();
@@ -109,7 +127,7 @@ function createGridFromEndpoints(
       const col = coord.x;
       
       // Grid'e yerleştir
-      grid[row][col] = { letter, colorIndex };
+      grid[row][col] = { letter, shape: null, colorIndex };
       
       // Endpoint'e ekle
       const existing = endpoints.get(letter) || [];
@@ -121,40 +139,81 @@ function createGridFromEndpoints(
   return { grid, endpoints };
 }
 
+// Koordinatlardan grid oluştur - shape mode
+function createGridFromShapeEndpoints(
+  puzzleConfig: ShapePuzzleConfig,
+  gridSize: number,
+): { grid: CellData[][], endpoints: Map<string, { row: number; col: number }[]> } {
+  // Boş grid oluştur
+  const grid: CellData[][] = Array.from({ length: gridSize }, () =>
+    Array.from({ length: gridSize }, () => ({ letter: null, shape: null, colorIndex: null }))
+  );
+
+  const endpoints = new Map<string, { row: number; col: number }[]>();
+  
+  // Shape'leri sıraya göre işle ve colorIndex ata
+  const shapeKeys = Object.keys(puzzleConfig);
+  
+  shapeKeys.forEach((shapeKey, index) => {
+    const shapeData = puzzleConfig[shapeKey];
+    const { type: shapeType, coordinates } = shapeData;
+    const colorIndex = index % PASTEL_COLORS.length;
+    
+    // Shape endpoint'leri için unique key oluştur (shape_0, shape_1, etc.)
+    const endpointKey = `shape_${colorIndex}`;
+    
+    coordinates.forEach((coord) => {
+      // x=col, y=row dönüşümü
+      const row = coord.y;
+      const col = coord.x;
+      
+      // Grid'e yerleştir
+      grid[row][col] = { letter: null, shape: shapeType, colorIndex };
+      
+      // Endpoint'e ekle (unique key ile)
+      const existing = endpoints.get(endpointKey) || [];
+      existing.push({ row, col });
+      endpoints.set(endpointKey, existing);
+    });
+  });
+
+  return { grid, endpoints };
+}
+
 const EASY_LEVELS: CellData[][][] = [
   [
-    [{ letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'A', colorIndex: 0 }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }],
-    [{ letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: 'C', shape: null, colorIndex: 2 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'C', shape: null, colorIndex: 2 }, { letter: null, shape: null, colorIndex: null }, { letter: 'D', shape: null, colorIndex: 3 }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'A', shape: null, colorIndex: 0 }, { letter: 'D', shape: null, colorIndex: 3 }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: 'A', shape: null, colorIndex: 0 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'B', shape: null, colorIndex: 1 }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'B', shape: null, colorIndex: 1 }],
   ],
 ];
 
 const MEDIUM_LEVELS: CellData[][][] = [
   [
-    [{ letter: 'E', colorIndex: 4 }, { letter: null, colorIndex: null }, { letter: 'E', colorIndex: 4 }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'A', colorIndex: 0 }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }, { letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }],
+    [{ letter: 'E', shape: null, colorIndex: 4 }, { letter: null, shape: null, colorIndex: null }, { letter: 'E', shape: null, colorIndex: 4 }, { letter: 'C', shape: null, colorIndex: 2 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'A', shape: null, colorIndex: 0 }, { letter: 'C', shape: null, colorIndex: 2 }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: 'B', shape: null, colorIndex: 1 }, { letter: 'A', shape: null, colorIndex: 0 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'D', shape: null, colorIndex: 3 }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: 'B', shape: null, colorIndex: 1 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'D', shape: null, colorIndex: 3 }, { letter: null, shape: null, colorIndex: null }],
   ],
 ];
 
 const HARD_LEVELS: CellData[][][] = [
   [
-    [{ letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: 'C', colorIndex: 2 }, { letter: null, colorIndex: null }, { letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'A', colorIndex: 0 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'E', colorIndex: 4 }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'F', colorIndex: 5 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: 'F', colorIndex: 5 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'E', colorIndex: 4 }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }, { letter: 'D', colorIndex: 3 }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }],
-    [{ letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: null, colorIndex: null }, { letter: 'B', colorIndex: 1 }, { letter: null, colorIndex: null }],
+    [{ letter: 'C', shape: null, colorIndex: 2 }, { letter: null, shape: null, colorIndex: null }, { letter: 'C', shape: null, colorIndex: 2 }, { letter: null, shape: null, colorIndex: null }, { letter: 'A', shape: null, colorIndex: 0 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'A', shape: null, colorIndex: 0 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'E', shape: null, colorIndex: 4 }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'F', shape: null, colorIndex: 5 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: 'F', shape: null, colorIndex: 5 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'E', shape: null, colorIndex: 4 }, { letter: 'B', shape: null, colorIndex: 1 }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'D', shape: null, colorIndex: 3 }, { letter: null, shape: null, colorIndex: null }, { letter: 'D', shape: null, colorIndex: 3 }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }],
+    [{ letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: null, shape: null, colorIndex: null }, { letter: 'B', shape: null, colorIndex: 1 }, { letter: null, shape: null, colorIndex: null }],
   ],
 ];
 
-export async function getLevel(difficulty: Difficulty, mode: 'letters' | 'shapes' = 'letters'): Promise<Level> {
+export async function getLevel(difficulty: Difficulty, mode: GameMode = 'letters'): Promise<Level> {
   try {
     // JSON'dan level'ları yükle
     const levelsData = await loadAllLevels();
@@ -162,17 +221,26 @@ export async function getLevel(difficulty: Difficulty, mode: 'letters' | 'shapes
     // Difficulty'e göre level setini al
     const difficultyLevels = levelsData[difficulty];
     
-    // Mode'a göre puzzle array'ini seç
-    const puzzles = mode === 'letters' ? difficultyLevels.letters : (difficultyLevels.shapes || difficultyLevels.letters);
-    
-    // Rastgele bir puzzle seç
-    const selectedPuzzle = getRandomPuzzleConfig(puzzles);
-    
     // Grid size'ı al
     const gridSize = DIFFICULTY_CONFIG[difficulty].gridSize;
     
-    // Grid ve endpoint'leri oluştur
-    const { grid, endpoints } = createGridFromEndpoints(selectedPuzzle, gridSize);
+    let grid: CellData[][];
+    let endpoints: Map<string, { row: number; col: number }[]>;
+    
+    // Mode'a göre puzzle seç ve grid oluştur
+    if (mode === 'shapes' && difficultyLevels.shapes && difficultyLevels.shapes.length > 0) {
+      // Shape mode
+      const selectedPuzzle = getRandomShapePuzzleConfig(difficultyLevels.shapes);
+      const result = createGridFromShapeEndpoints(selectedPuzzle, gridSize);
+      grid = result.grid;
+      endpoints = result.endpoints;
+    } else {
+      // Letter mode (default)
+      const selectedPuzzle = getRandomPuzzleConfig(difficultyLevels.letters);
+      const result = createGridFromEndpoints(selectedPuzzle, gridSize);
+      grid = result.grid;
+      endpoints = result.endpoints;
+    }
     
     return { difficulty, grid, endpoints };
   } catch (error) {

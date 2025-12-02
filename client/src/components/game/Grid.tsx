@@ -181,10 +181,11 @@ export default function Grid({ level, gameState, onGameStateChange }: GridProps)
               row={rowIndex}
               col={colIndex}
               letter={cell.letter}
+              shape={cell.shape || null}
               bgColor={color?.bg || null}
               textColor={color?.text || null}
               isActive={isActive}
-              isEndpoint={cell.letter !== null}
+              isEndpoint={cell.letter !== null || cell.shape !== null}
               size={tileSize}
             />
           );
