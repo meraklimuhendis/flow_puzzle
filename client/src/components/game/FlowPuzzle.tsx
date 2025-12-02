@@ -11,35 +11,62 @@ type GamePhase = 'not-started' | 'playing' | 'completed';
 
 export default function FlowPuzzle() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
-  const [level, setLevel] = useState(() => getLevel('easy'));
-  const [gameState, setGameState] = useState<GameState>(() =>
-    createInitialGameState(level)
-  );
+  const [level, setLevel] = useState<any>(null);
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [key, setKey] = useState(0);
   const [gamePhase, setGamePhase] = useState<GamePhase>('not-started');
   const [time, setTime] = useState(0);
   const [finalTime, setFinalTime] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const prevSolvedRef = useRef(false);
 
+  // İlk yükleme
   useEffect(() => {
-    const newLevel = getLevel(difficulty);
-    setLevel(newLevel);
-    setGameState(createInitialGameState(newLevel));
-    setKey((k) => k + 1);
-    setGamePhase('not-started');
-    setTime(0);
-    setFinalTime(0);
-    prevSolvedRef.current = false;
+    const loadInitialLevel = async () => {
+      setIsLoading(true);
+      try {
+        const newLevel = await getLevel('easy');
+        setLevel(newLevel);
+        setGameState(createInitialGameState(newLevel));
+      } catch (error) {
+        console.error('Failed to load initial level:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadInitialLevel();
+  }, []);
+
+  // Difficulty değiştiğinde
+  useEffect(() => {
+    const loadLevel = async () => {
+      setIsLoading(true);
+      try {
+        const newLevel = await getLevel(difficulty);
+        setLevel(newLevel);
+        setGameState(createInitialGameState(newLevel));
+        setKey((k) => k + 1);
+        setGamePhase('not-started');
+        setTime(0);
+        setFinalTime(0);
+        prevSolvedRef.current = false;
+      } catch (error) {
+        console.error('Failed to load level:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadLevel();
   }, [difficulty]);
 
   // Detect puzzle completion
   useEffect(() => {
-    if (gameState.isSolved && !prevSolvedRef.current && gamePhase === 'playing') {
+    if (gameState?.isSolved && !prevSolvedRef.current && gamePhase === 'playing') {
       prevSolvedRef.current = true;
       setFinalTime(time);
       setGamePhase('completed');
     }
-  }, [gameState.isSolved, gamePhase, time]);
+  }, [gameState?.isSolved, gamePhase, time]);
 
   const handleDifficultyChange = useCallback((newDifficulty: Difficulty) => {
     setDifficulty(newDifficulty);
@@ -54,15 +81,22 @@ export default function FlowPuzzle() {
     setTime(0);
   }, []);
 
-  const handleReset = useCallback(() => {
-    const newLevel = getLevel(difficulty);
-    setLevel(newLevel);
-    setGameState(createInitialGameState(newLevel));
-    setKey((k) => k + 1);
-    setGamePhase('not-started');
-    setTime(0);
-    setFinalTime(0);
-    prevSolvedRef.current = false;
+  const handleReset = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const newLevel = await getLevel(difficulty);
+      setLevel(newLevel);
+      setGameState(createInitialGameState(newLevel));
+      setKey((k) => k + 1);
+      setGamePhase('not-started');
+      setTime(0);
+      setFinalTime(0);
+      prevSolvedRef.current = false;
+    } catch (error) {
+      console.error('Failed to reset level:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, [difficulty]);
 
   const handleTimeUpdate = useCallback((newTime: number) => {
@@ -71,6 +105,18 @@ export default function FlowPuzzle() {
 
   const isTimerRunning = gamePhase === 'playing';
   const isGamePlayable = gamePhase === 'playing';
+
+  // Loading state
+  if (isLoading || !level || !gameState) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-muted-foreground">Loading puzzle...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

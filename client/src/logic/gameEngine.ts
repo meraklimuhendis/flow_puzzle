@@ -75,6 +75,11 @@ export function startPath(
     if (occupyingLetter) {
       const existingPath = state.paths.get(occupyingLetter);
       if (existingPath) {
+        // Tamamlanmış path'lerin üzerine tıklanamaz
+        if (existingPath.isComplete) {
+          return state;
+        }
+        
         const segmentIndex = existingPath.segments.findIndex(
           s => s.row === row && s.col === col
         );
@@ -179,6 +184,12 @@ export function extendPath(
     const newPaths = new Map(paths);
     const occupiedPath = newPaths.get(occupyingLetter);
     if (occupiedPath) {
+      // Eğer başka bir path tamamlanmışsa (isComplete: true), onun üzerine gelinemez
+      if (occupiedPath.isComplete) {
+        return state; // Hareketi engelle
+      }
+      
+      // Tamamlanmamış path ise, kes
       const cutIndex = occupiedPath.segments.findIndex(
         s => s.row === row && s.col === col
       );
@@ -235,8 +246,16 @@ export function endPath(state: GameState): GameState {
 
   const newPaths = new Map(state.paths);
   
-  if (state.currentPath.segments.length > 0) {
+  // Sadece path tamamlanmışsa kaydet (her iki endpoint'e ulaşılmışsa)
+  if (state.currentPath.segments.length > 0 && state.currentPath.isComplete) {
     newPaths.set(state.currentPath.letter, state.currentPath);
+  }
+  // Path tamamlanmamışsa, o harfin eski path'ini sil (eğer varsa ve tamamlanmamışsa)
+  else if (state.currentPath.letter) {
+    const existingPath = newPaths.get(state.currentPath.letter);
+    if (existingPath && !existingPath.isComplete) {
+      newPaths.delete(state.currentPath.letter);
+    }
   }
 
   const isSolved = checkSolved(newPaths, state.level);
@@ -276,16 +295,9 @@ export function checkSolved(paths: Map<string, Path>, level: Level): boolean {
     if (!matchesStart || !matchesEnd) return false;
   }
 
-  const gridSize = DIFFICULTY_CONFIG[level.difficulty].gridSize;
-  const totalCells = gridSize * gridSize;
-  let coveredCells = 0;
-
-  const pathValues = Array.from(paths.values());
-  for (let i = 0; i < pathValues.length; i++) {
-    coveredCells += pathValues[i].segments.length;
-  }
-
-  return coveredCells === totalCells;
+  // Oyun bitişi için sadece tüm harf çiftlerinin birbirlerine bağlanmış olması yeterli
+  // Grid'de boş hücreler kalabilir
+  return true;
 }
 
 export function getCellColor(

@@ -16,6 +16,27 @@ export interface Level {
   endpoints: Map<string, { row: number; col: number }[]>;
 }
 
+// JSON formatı için type definitions
+export interface CoordinatePair {
+  x: number;
+  y: number;
+}
+
+export interface PuzzleConfig {
+  [letter: string]: CoordinatePair[];
+}
+
+export interface DifficultyLevels {
+  letters: PuzzleConfig[];
+  shapes?: PuzzleConfig[];
+}
+
+export interface LevelsJSON {
+  easy: DifficultyLevels;
+  medium: DifficultyLevels;
+  hard: DifficultyLevels;
+}
+
 export const DIFFICULTY_CONFIG: Record<Difficulty, LevelConfig> = {
   easy: { gridSize: 5, pairs: 4 },
   medium: { gridSize: 6, pairs: 5 },
@@ -32,6 +53,73 @@ export const PASTEL_COLORS = [
 ];
 
 export const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
+
+// JSON cache
+let levelsCache: LevelsJSON | null = null;
+
+// JSON dosyasından tüm level'ları yükle
+async function loadAllLevels(): Promise<LevelsJSON> {
+  if (levelsCache) {
+    return levelsCache;
+  }
+
+  try {
+    const response = await fetch('/levels.json');
+    if (!response.ok) {
+      throw new Error(`Failed to load levels: ${response.statusText}`);
+    }
+    levelsCache = await response.json();
+    return levelsCache;
+  } catch (error) {
+    console.error('Error loading levels.json:', error);
+    throw error;
+  }
+}
+
+// Rastgele puzzle seç
+function getRandomPuzzleConfig(
+  puzzles: PuzzleConfig[],
+): PuzzleConfig {
+  const randomIndex = Math.floor(Math.random() * puzzles.length);
+  return puzzles[randomIndex];
+}
+
+// Koordinatlardan grid oluştur
+function createGridFromEndpoints(
+  puzzleConfig: PuzzleConfig,
+  gridSize: number,
+): { grid: CellData[][], endpoints: Map<string, { row: number; col: number }[]> } {
+  // Boş grid oluştur
+  const grid: CellData[][] = Array.from({ length: gridSize }, () =>
+    Array.from({ length: gridSize }, () => ({ letter: null, colorIndex: null }))
+  );
+
+  const endpoints = new Map<string, { row: number; col: number }[]>();
+  
+  // Harfleri alfabetik sıraya göre sırala ve colorIndex ata
+  const sortedLetters = Object.keys(puzzleConfig).sort();
+  
+  sortedLetters.forEach((letter, index) => {
+    const coordinates = puzzleConfig[letter];
+    const colorIndex = index % PASTEL_COLORS.length;
+    
+    coordinates.forEach((coord) => {
+      // x=col, y=row dönüşümü
+      const row = coord.y;
+      const col = coord.x;
+      
+      // Grid'e yerleştir
+      grid[row][col] = { letter, colorIndex };
+      
+      // Endpoint'e ekle
+      const existing = endpoints.get(letter) || [];
+      existing.push({ row, col });
+      endpoints.set(letter, existing);
+    });
+  });
+
+  return { grid, endpoints };
+}
 
 const EASY_LEVELS: CellData[][][] = [
   [
@@ -66,7 +154,36 @@ const HARD_LEVELS: CellData[][][] = [
   ],
 ];
 
-export function getLevel(difficulty: Difficulty): Level {
+export async function getLevel(difficulty: Difficulty, mode: 'letters' | 'shapes' = 'letters'): Promise<Level> {
+  try {
+    // JSON'dan level'ları yükle
+    const levelsData = await loadAllLevels();
+    
+    // Difficulty'e göre level setini al
+    const difficultyLevels = levelsData[difficulty];
+    
+    // Mode'a göre puzzle array'ini seç
+    const puzzles = mode === 'letters' ? difficultyLevels.letters : (difficultyLevels.shapes || difficultyLevels.letters);
+    
+    // Rastgele bir puzzle seç
+    const selectedPuzzle = getRandomPuzzleConfig(puzzles);
+    
+    // Grid size'ı al
+    const gridSize = DIFFICULTY_CONFIG[difficulty].gridSize;
+    
+    // Grid ve endpoint'leri oluştur
+    const { grid, endpoints } = createGridFromEndpoints(selectedPuzzle, gridSize);
+    
+    return { difficulty, grid, endpoints };
+  } catch (error) {
+    console.error('Error in getLevel:', error);
+    // Fallback: Eski sistemi kullan
+    return getLevelFallback(difficulty);
+  }
+}
+
+// Fallback fonksiyonu (JSON yüklenemezse eski sistem)
+function getLevelFallback(difficulty: Difficulty): Level {
   let grid: CellData[][];
   
   switch (difficulty) {
