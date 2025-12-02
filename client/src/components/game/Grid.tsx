@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import Tile from './Tile';
+import MazeTile from './MazeTile';
 import PathRenderer from './PathRenderer';
 import {
   GameState,
@@ -7,8 +8,11 @@ import {
   extendPath,
   endPath,
   getCellColor,
+  startMazePath,
+  extendMazePath,
+  endMazePath,
 } from '@/logic/gameEngine';
-import { DIFFICULTY_CONFIG, Level } from '@/logic/levels';
+import { DIFFICULTY_CONFIG, MAZE_CONFIG, Level } from '@/logic/levels';
 
 interface GridProps {
   level: Level;
@@ -19,8 +23,11 @@ interface GridProps {
 export default function Grid({ level, gameState, onGameStateChange }: GridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   const [tileSize, setTileSize] = useState(60);
-  const gridSize = DIFFICULTY_CONFIG[level.difficulty].gridSize;
-  const gap = 8;
+  const isMazeMode = level.mode === 'maze';
+  const gridSize = isMazeMode 
+    ? MAZE_CONFIG[level.difficulty].gridSize 
+    : DIFFICULTY_CONFIG[level.difficulty].gridSize;
+  const gap = isMazeMode ? 0 : 8; // Maze'de gap yok
 
   useEffect(() => {
     const updateTileSize = () => {
@@ -60,11 +67,13 @@ export default function Grid({ level, gameState, onGameStateChange }: GridProps)
     (clientX: number, clientY: number) => {
       const cell = getCellFromEvent(clientX, clientY);
       if (cell) {
-        const newState = startPath(gameState, cell.row, cell.col);
+        const newState = isMazeMode
+          ? startMazePath(gameState, cell.row, cell.col)
+          : startPath(gameState, cell.row, cell.col);
         onGameStateChange(newState);
       }
     },
-    [gameState, getCellFromEvent, onGameStateChange]
+    [gameState, getCellFromEvent, onGameStateChange, isMazeMode]
   );
 
   const handleMove = useCallback(
@@ -73,17 +82,21 @@ export default function Grid({ level, gameState, onGameStateChange }: GridProps)
 
       const cell = getCellFromEvent(clientX, clientY);
       if (cell) {
-        const newState = extendPath(gameState, cell.row, cell.col);
+        const newState = isMazeMode
+          ? extendMazePath(gameState, cell.row, cell.col)
+          : extendPath(gameState, cell.row, cell.col);
         onGameStateChange(newState);
       }
     },
-    [gameState, getCellFromEvent, onGameStateChange]
+    [gameState, getCellFromEvent, onGameStateChange, isMazeMode]
   );
 
   const handleEnd = useCallback(() => {
-    const newState = endPath(gameState);
+    const newState = isMazeMode
+      ? endMazePath(gameState)
+      : endPath(gameState);
     onGameStateChange(newState);
-  }, [gameState, onGameStateChange]);
+  }, [gameState, onGameStateChange, isMazeMode]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -175,6 +188,24 @@ export default function Grid({ level, gameState, onGameStateChange }: GridProps)
               (s) => s.row === rowIndex && s.col === colIndex
             ) || false;
 
+          // Maze mode için MazeTile kullan
+          if (isMazeMode && cell.mazeWalls) {
+            return (
+              <MazeTile
+                key={`${rowIndex}-${colIndex}`}
+                row={rowIndex}
+                col={colIndex}
+                walls={cell.mazeWalls}
+                isStart={cell.isStart || false}
+                isEnd={cell.isEnd || false}
+                bgColor={color?.bg || null}
+                isActive={isActive}
+                size={tileSize}
+              />
+            );
+          }
+
+          // Letter/Shape mode için normal Tile
           return (
             <Tile
               key={`${rowIndex}-${colIndex}`}

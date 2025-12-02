@@ -7,16 +7,44 @@ export interface LevelConfig {
   pairs: number;
 }
 
+// Maze mode için yapılar
+export interface WallSet {
+  top: boolean;
+  right: boolean;
+  bottom: boolean;
+  left: boolean;
+}
+
+export interface MazeCell {
+  walls: WallSet;
+  isStart: boolean;
+  isEnd: boolean;
+}
+
+export interface MazeConfig {
+  grid: MazeCell[][];
+  start: { row: number; col: number };
+  end: { row: number; col: number };
+}
+
 export interface CellData {
   letter: string | null;
   shape: ShapeType | null;
   colorIndex: number | null;
+  // Maze mode için
+  mazeWalls?: WallSet;
+  isStart?: boolean;
+  isEnd?: boolean;
 }
 
 export interface Level {
   difficulty: Difficulty;
+  mode?: GameMode; // Hangi modda olduğunu belirtmek için
   grid: CellData[][];
   endpoints: Map<string, { row: number; col: number }[]>;
+  // Maze mode için
+  mazeStart?: { row: number; col: number };
+  mazeEnd?: { row: number; col: number };
 }
 
 // JSON formatı için type definitions
@@ -53,6 +81,13 @@ export const DIFFICULTY_CONFIG: Record<Difficulty, LevelConfig> = {
   hard: { gridSize: 7, pairs: 6 },
 };
 
+// Maze mode için grid size ayarları
+export const MAZE_CONFIG: Record<Difficulty, { gridSize: number }> = {
+  easy: { gridSize: 7 },
+  medium: { gridSize: 9 },
+  hard: { gridSize: 11 },
+};
+
 export const PASTEL_COLORS = [
   { bg: 'rgb(251, 207, 232)', text: 'rgb(157, 23, 77)' },
   { bg: 'rgb(196, 181, 253)', text: 'rgb(76, 29, 149)' },
@@ -70,7 +105,7 @@ let levelsCache: LevelsJSON | null = null;
 // JSON dosyasından tüm level'ları yükle
 async function loadAllLevels(): Promise<LevelsJSON> {
   if (levelsCache) {
-    return levelsCache;
+    return levelsCache as LevelsJSON;
   }
 
   try {
@@ -79,7 +114,7 @@ async function loadAllLevels(): Promise<LevelsJSON> {
       throw new Error(`Failed to load levels: ${response.statusText}`);
     }
     levelsCache = await response.json();
-    return levelsCache;
+    return levelsCache as LevelsJSON;
   } catch (error) {
     console.error('Error loading levels.json:', error);
     throw error;
@@ -214,6 +249,22 @@ const HARD_LEVELS: CellData[][][] = [
 ];
 
 export async function getLevel(difficulty: Difficulty, mode: GameMode = 'letters'): Promise<Level> {
+  // Maze mode için direkt generator kullan
+  if (mode === 'maze') {
+    const gridSize = MAZE_CONFIG[difficulty].gridSize;
+    const mazeConfig = generateMaze(gridSize);
+    const { grid, mazeStart, mazeEnd } = createGridFromMaze(mazeConfig, gridSize);
+    
+    return {
+      difficulty,
+      mode: 'maze',
+      grid,
+      endpoints: new Map(), // Maze'de endpoint yok
+      mazeStart,
+      mazeEnd,
+    };
+  }
+
   try {
     // JSON'dan level'ları yükle
     const levelsData = await loadAllLevels();
@@ -242,7 +293,7 @@ export async function getLevel(difficulty: Difficulty, mode: GameMode = 'letters
       endpoints = result.endpoints;
     }
     
-    return { difficulty, grid, endpoints };
+    return { difficulty, mode, grid, endpoints };
   } catch (error) {
     console.error('Error in getLevel:', error);
     // Fallback: Eski sistemi kullan
@@ -281,3 +332,138 @@ function getLevelFallback(difficulty: Difficulty): Level {
 
   return { difficulty, grid, endpoints };
 }
+
+// ==============================================
+// MAZE MODE FUNCTIONS
+// ==============================================
+
+/**
+ * Recursive Backtracking algoritması ile labirent üret
+ * Her labirent çözülebilir ve tek bir çözüm yoluna sahip
+ */
+function generateMaze(size: number): MazeConfig {
+  // Tüm duvarları kapalı olarak başlat
+  const grid: MazeCell[][] = Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => ({
+      walls: { top: true, right: true, bottom: true, left: true },
+      isStart: false,
+      isEnd: false,
+    }))
+  );
+
+  const visited: boolean[][] = Array.from({ length: size }, () =>
+    Array.from({ length: size }, () => false)
+  );
+
+  // Recursive backtracking ile labirent oluştur
+  function carve(row: number, col: number) {
+    visited[row][col] = true;
+
+    // Komşuları rastgele sıraya koy
+    const directions = [
+      { dr: -1, dc: 0, wall: 'top', opposite: 'bottom' }, // yukarı
+      { dr: 0, dc: 1, wall: 'right', opposite: 'left' },   // sağ
+      { dr: 1, dc: 0, wall: 'bottom', opposite: 'top' },   // aşağı
+      { dr: 0, dc: -1, wall: 'left', opposite: 'right' },  // sol
+    ];
+
+    // Rastgele sıralama (Fisher-Yates shuffle)
+    for (let i = directions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [directions[i], directions[j]] = [directions[j], directions[i]];
+    }
+
+    for (const dir of directions) {
+      const newRow = row + dir.dr;
+      const newCol = col + dir.dc;
+
+      // Sınırlar içinde ve ziyaret edilmemiş mi?
+      if (
+        newRow >= 0 && newRow < size &&
+        newCol >= 0 && newCol < size &&
+        !visited[newRow][newCol]
+      ) {
+        // Duvarları kaldır
+        grid[row][col].walls[dir.wall as keyof WallSet] = false;
+        grid[newRow][newCol].walls[dir.opposite as keyof WallSet] = false;
+
+        // Recursive olarak devam et
+        carve(newRow, newCol);
+      }
+    }
+  }
+
+  // Sol üst köşeden başla
+  carve(0, 0);
+
+  // Başlangıç ve bitiş noktalarını belirle
+  const start = { row: 0, col: 0 };
+  const end = { row: size - 1, col: size - 1 };
+
+  grid[start.row][start.col].isStart = true;
+  grid[end.row][end.col].isEnd = true;
+
+  return { grid, start, end };
+}
+
+/**
+ * MazeConfig'den CellData grid'i oluştur
+ */
+function createGridFromMaze(mazeConfig: MazeConfig, gridSize: number): {
+  grid: CellData[][];
+  mazeStart: { row: number; col: number };
+  mazeEnd: { row: number; col: number };
+} {
+  const grid: CellData[][] = Array.from({ length: gridSize }, (_, row) =>
+    Array.from({ length: gridSize }, (_, col) => {
+      const mazeCell = mazeConfig.grid[row][col];
+      return {
+        letter: null,
+        shape: null,
+        colorIndex: null,
+        mazeWalls: mazeCell.walls,
+        isStart: mazeCell.isStart,
+        isEnd: mazeCell.isEnd,
+      };
+    })
+  );
+
+  return {
+    grid,
+    mazeStart: mazeConfig.start,
+    mazeEnd: mazeConfig.end,
+  };
+}
+
+/**
+ * JSON'dan maze config'i yükle
+ */
+interface MazeJSON {
+  walls: string; // "1111" formatında (top,right,bottom,left)
+  isStart?: boolean;
+  isEnd?: boolean;
+}
+
+function parseMazeFromJSON(mazeData: MazeJSON[][], start: { row: number; col: number }, end: { row: number; col: number }): MazeConfig {
+  const size = mazeData.length;
+  const grid: MazeCell[][] = Array.from({ length: size }, (_, row) =>
+    Array.from({ length: size }, (_, col) => {
+      const cellData = mazeData[row][col];
+      const walls = cellData.walls;
+      
+      return {
+        walls: {
+          top: walls[0] === '1',
+          right: walls[1] === '1',
+          bottom: walls[2] === '1',
+          left: walls[3] === '1',
+        },
+        isStart: row === start.row && col === start.col,
+        isEnd: row === end.row && col === end.col,
+      };
+    })
+  );
+
+  return { grid, start, end };
+}
+
