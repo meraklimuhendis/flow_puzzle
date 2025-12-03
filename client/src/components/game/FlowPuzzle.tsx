@@ -1,9 +1,10 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import DifficultySelector from './DifficultySelector';
+import ModeSelector from './ModeSelector';
 import Grid from './Grid';
 import Timer, { formatTime } from './Timer';
 import { Button } from '@/components/ui/button';
-import { Difficulty, getLevel } from '@/logic/levels';
+import { Difficulty, GameMode, getLevel } from '@/logic/levels';
 import { GameState, createInitialGameState } from '@/logic/gameEngine';
 import { Play } from 'lucide-react';
 
@@ -11,38 +12,70 @@ type GamePhase = 'not-started' | 'playing' | 'completed';
 
 export default function FlowPuzzle() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
-  const [level, setLevel] = useState(() => getLevel('easy'));
-  const [gameState, setGameState] = useState<GameState>(() =>
-    createInitialGameState(level)
-  );
+  const [mode, setMode] = useState<GameMode>('letters');
+  const [level, setLevel] = useState<any>(null);
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [key, setKey] = useState(0);
   const [gamePhase, setGamePhase] = useState<GamePhase>('not-started');
   const [time, setTime] = useState(0);
   const [finalTime, setFinalTime] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const prevSolvedRef = useRef(false);
 
+  // İlk yükleme
   useEffect(() => {
-    const newLevel = getLevel(difficulty);
-    setLevel(newLevel);
-    setGameState(createInitialGameState(newLevel));
-    setKey((k) => k + 1);
-    setGamePhase('not-started');
-    setTime(0);
-    setFinalTime(0);
-    prevSolvedRef.current = false;
-  }, [difficulty]);
+    const loadInitialLevel = async () => {
+      setIsLoading(true);
+      try {
+        const newLevel = await getLevel('easy', 'letters');
+        setLevel(newLevel);
+        setGameState(createInitialGameState(newLevel));
+      } catch (error) {
+        console.error('Failed to load initial level:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadInitialLevel();
+  }, []);
+
+  // Difficulty veya mode değiştiğinde
+  useEffect(() => {
+    const loadLevel = async () => {
+      setIsLoading(true);
+      try {
+        const newLevel = await getLevel(difficulty, mode);
+        setLevel(newLevel);
+        setGameState(createInitialGameState(newLevel));
+        setKey((k) => k + 1);
+        setGamePhase('not-started');
+        setTime(0);
+        setFinalTime(0);
+        prevSolvedRef.current = false;
+      } catch (error) {
+        console.error('Failed to load level:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadLevel();
+  }, [difficulty, mode]);
 
   // Detect puzzle completion
   useEffect(() => {
-    if (gameState.isSolved && !prevSolvedRef.current && gamePhase === 'playing') {
+    if (gameState?.isSolved && !prevSolvedRef.current && gamePhase === 'playing') {
       prevSolvedRef.current = true;
       setFinalTime(time);
       setGamePhase('completed');
     }
-  }, [gameState.isSolved, gamePhase, time]);
+  }, [gameState?.isSolved, gamePhase, time]);
 
   const handleDifficultyChange = useCallback((newDifficulty: Difficulty) => {
     setDifficulty(newDifficulty);
+  }, []);
+
+  const handleModeChange = useCallback((newMode: GameMode) => {
+    setMode(newMode);
   }, []);
 
   const handleGameStateChange = useCallback((newState: GameState) => {
@@ -54,16 +87,23 @@ export default function FlowPuzzle() {
     setTime(0);
   }, []);
 
-  const handleReset = useCallback(() => {
-    const newLevel = getLevel(difficulty);
-    setLevel(newLevel);
-    setGameState(createInitialGameState(newLevel));
-    setKey((k) => k + 1);
-    setGamePhase('not-started');
-    setTime(0);
-    setFinalTime(0);
-    prevSolvedRef.current = false;
-  }, [difficulty]);
+  const handleReset = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const newLevel = await getLevel(difficulty, mode);
+      setLevel(newLevel);
+      setGameState(createInitialGameState(newLevel));
+      setKey((k) => k + 1);
+      setGamePhase('not-started');
+      setTime(0);
+      setFinalTime(0);
+      prevSolvedRef.current = false;
+    } catch (error) {
+      console.error('Failed to reset level:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [difficulty, mode]);
 
   const handleTimeUpdate = useCallback((newTime: number) => {
     setTime(newTime);
@@ -71,6 +111,18 @@ export default function FlowPuzzle() {
 
   const isTimerRunning = gamePhase === 'playing';
   const isGamePlayable = gamePhase === 'playing';
+
+  // Loading state
+  if (isLoading || !level || !gameState) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8 bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-muted-foreground">Loading puzzle...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -86,6 +138,12 @@ export default function FlowPuzzle() {
             Connect matching letters without crossing paths
           </p>
         </div>
+
+        <ModeSelector
+          currentMode={mode}
+          onSelect={handleModeChange}
+          disabled={gamePhase === 'playing'}
+        />
 
         <DifficultySelector
           currentDifficulty={difficulty}

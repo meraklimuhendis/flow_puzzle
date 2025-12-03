@@ -38,8 +38,11 @@ export function isAdjacent(a: PathSegment, b: PathSegment): boolean {
 
 export function isEndpoint(level: Level, row: number, col: number): { letter: string; colorIndex: number } | null {
   const cell = level.grid[row]?.[col];
-  if (cell?.letter && cell.colorIndex !== null) {
-    return { letter: cell.letter, colorIndex: cell.colorIndex };
+  // Endpoint hem letter hem de shape olabilir
+  if (cell && cell.colorIndex !== null && (cell.letter || cell.shape)) {
+    // Letter varsa letter kullan, yoksa shape key'ini kullan (örn: "shape_0", "shape_1")
+    const key = cell.letter || `shape_${cell.colorIndex}`;
+    return { letter: key, colorIndex: cell.colorIndex };
   }
   return null;
 }
@@ -75,6 +78,11 @@ export function startPath(
     if (occupyingLetter) {
       const existingPath = state.paths.get(occupyingLetter);
       if (existingPath) {
+        // Tamamlanmış path'lerin üzerine tıklanamaz
+        if (existingPath.isComplete) {
+          return state;
+        }
+        
         const segmentIndex = existingPath.segments.findIndex(
           s => s.row === row && s.col === col
         );
@@ -179,6 +187,12 @@ export function extendPath(
     const newPaths = new Map(paths);
     const occupiedPath = newPaths.get(occupyingLetter);
     if (occupiedPath) {
+      // Eğer başka bir path tamamlanmışsa (isComplete: true), onun üzerine gelinemez
+      if (occupiedPath.isComplete) {
+        return state; // Hareketi engelle
+      }
+      
+      // Tamamlanmamış path ise, kes
       const cutIndex = occupiedPath.segments.findIndex(
         s => s.row === row && s.col === col
       );
@@ -235,8 +249,16 @@ export function endPath(state: GameState): GameState {
 
   const newPaths = new Map(state.paths);
   
-  if (state.currentPath.segments.length > 0) {
+  // Sadece path tamamlanmışsa kaydet (her iki endpoint'e ulaşılmışsa)
+  if (state.currentPath.segments.length > 0 && state.currentPath.isComplete) {
     newPaths.set(state.currentPath.letter, state.currentPath);
+  }
+  // Path tamamlanmamışsa, o harfin eski path'ini sil (eğer varsa ve tamamlanmamışsa)
+  else if (state.currentPath.letter) {
+    const existingPath = newPaths.get(state.currentPath.letter);
+    if (existingPath && !existingPath.isComplete) {
+      newPaths.delete(state.currentPath.letter);
+    }
   }
 
   const isSolved = checkSolved(newPaths, state.level);
@@ -276,16 +298,9 @@ export function checkSolved(paths: Map<string, Path>, level: Level): boolean {
     if (!matchesStart || !matchesEnd) return false;
   }
 
-  const gridSize = DIFFICULTY_CONFIG[level.difficulty].gridSize;
-  const totalCells = gridSize * gridSize;
-  let coveredCells = 0;
-
-  const pathValues = Array.from(paths.values());
-  for (let i = 0; i < pathValues.length; i++) {
-    coveredCells += pathValues[i].segments.length;
-  }
-
-  return coveredCells === totalCells;
+  // Oyun bitişi için sadece tüm harf çiftlerinin birbirlerine bağlanmış olması yeterli
+  // Grid'de boş hücreler kalabilir
+  return true;
 }
 
 export function getCellColor(
@@ -322,3 +337,158 @@ export function getCellColor(
 export function getPathColor(colorIndex: number): string {
   return PASTEL_COLORS[colorIndex]?.bg || 'transparent';
 }
+
+// ==============================================
+// MAZE MODE FUNCTIONS
+// ==============================================
+
+/**
+ * Maze mode için iki hücre arasında duvar var mı kontrol et
+ */
+export function hasWallBetween(
+  level: Level,
+  fromRow: number,
+  fromCol: number,
+  toRow: number,
+  toCol: number
+): boolean {
+  const fromCell = level.grid[fromRow]?.[fromCol];
+  if (!fromCell?.mazeWalls) return false;
+
+  // Yön belirle
+  if (toRow < fromRow) {
+    // Yukarı gidiyor
+    return fromCell.mazeWalls.top;
+  } else if (toRow > fromRow) {
+    // Aşağı gidiyor
+    return fromCell.mazeWalls.bottom;
+  } else if (toCol < fromCol) {
+    // Sola gidiyor
+    return fromCell.mazeWalls.left;
+  } else if (toCol > fromCol) {
+    // Sağa gidiyor
+    return fromCell.mazeWalls.right;
+  }
+
+  return false;
+}
+
+/**
+ * Maze mode için path başlat (sadece start noktasından)
+ */
+export function startMazePath(
+  state: GameState,
+  row: number,
+  col: number
+): GameState {
+  const cell = state.level.grid[row]?.[col];
+  
+  // Sadece start noktasından başlatılabilir
+  if (!cell?.isStart) {
+    return state;
+  }
+
+  return {
+    ...state,
+    currentPath: {
+      letter: 'maze',
+      colorIndex: 0, // Mavi renk kullan
+      segments: [{ row, col }],
+      isComplete: false,
+    },
+    isDrawing: true,
+  };
+}
+
+/**
+ * Maze mode için path genişlet (duvar kontrolü ile)
+ */
+export function extendMazePath(
+  state: GameState,
+  row: number,
+  col: number
+): GameState {
+  if (!state.currentPath || !state.isDrawing) return state;
+
+  const lastSegment = state.currentPath.segments[state.currentPath.segments.length - 1];
+  
+  // Aynı hücreye tekrar gitme
+  if (lastSegment.row === row && lastSegment.col === col) {
+    return state;
+  }
+
+  // Komşu hücre kontrolü
+  if (!isAdjacent(lastSegment, { row, col })) {
+    return state;
+  }
+
+  // Duvar kontrolü - aralarında duvar varsa geçemez
+  if (hasWallBetween(state.level, lastSegment.row, lastSegment.col, row, col)) {
+    return state;
+  }
+
+  // Backtrack kontrolü (geri gitme)
+  const segmentIndex = state.currentPath.segments.findIndex(
+    s => s.row === row && s.col === col
+  );
+
+  if (segmentIndex !== -1) {
+    // Geri gidiyor - path'i kısalt
+    const truncatedSegments = state.currentPath.segments.slice(0, segmentIndex + 1);
+    return {
+      ...state,
+      currentPath: {
+        ...state.currentPath,
+        segments: truncatedSegments,
+        isComplete: false,
+      },
+    };
+  }
+
+  // Yeni segment ekle
+  const newSegments = [...state.currentPath.segments, { row, col }];
+  
+  // End noktasına ulaştı mı?
+  const cell = state.level.grid[row]?.[col];
+  const isComplete = cell?.isEnd || false;
+
+  return {
+    ...state,
+    currentPath: {
+      ...state.currentPath,
+      segments: newSegments,
+      isComplete,
+    },
+  };
+}
+
+/**
+ * Maze mode için path bitir
+ */
+export function endMazePath(state: GameState): GameState {
+  if (!state.currentPath) {
+    return { ...state, isDrawing: false };
+  }
+
+  // End noktasına ulaştıysa kaydet
+  if (state.currentPath.isComplete) {
+    const newPaths = new Map(state.paths);
+    newPaths.set('maze', state.currentPath);
+
+    return {
+      ...state,
+      paths: newPaths,
+      currentPath: null,
+      isDrawing: false,
+      isSolved: true, // Maze'de tek path var, tamamlandı = çözüldü
+    };
+  }
+
+  // Tamamlanmadıysa sil
+  return {
+    ...state,
+    currentPath: null,
+    isDrawing: false,
+  };
+}
+
