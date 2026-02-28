@@ -11,7 +11,7 @@ import MaintenancePage from "@/pages/maintenance";
 // ===========================================
 // Bakım modunu AÇMAK için: true
 // Bakım modunu KAPATMAK için: false
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 // ===========================================
 
 function Router() {
