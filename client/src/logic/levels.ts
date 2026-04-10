@@ -64,9 +64,16 @@ export interface ShapePuzzleConfig {
   };
 }
 
+export interface MazeLevelJSON {
+  start: { row: number; col: number };
+  end: { row: number; col: number };
+  grid: { walls: string }[][];
+}
+
 export interface DifficultyLevels {
   letters: PuzzleConfig[];
   shapes?: ShapePuzzleConfig[];
+  maze?: MazeLevelJSON[];
 }
 
 export interface LevelsJSON {
@@ -249,17 +256,42 @@ const HARD_LEVELS: CellData[][][] = [
 ];
 
 export async function getLevel(difficulty: Difficulty, mode: GameMode = 'letters'): Promise<Level> {
-  // Maze mode için direkt generator kullan
+  // Maze mode
   if (mode === 'maze') {
     const gridSize = MAZE_CONFIG[difficulty].gridSize;
+    
+    // Manuel maze tanımlarını JSON'dan yükle
+    try {
+      const levelsData = await loadAllLevels();
+      const difficultyLevels = levelsData[difficulty];
+      if (difficultyLevels.maze && difficultyLevels.maze.length > 0) {
+        const randomIndex = Math.floor(Math.random() * difficultyLevels.maze.length);
+        const mazeData = difficultyLevels.maze[randomIndex];
+        const mazeConfig = parseMazeFromJSON(mazeData.grid as any, mazeData.start, mazeData.end);
+        const { grid, mazeStart, mazeEnd } = createGridFromMaze(mazeConfig, gridSize);
+        return {
+          difficulty,
+          mode: 'maze',
+          grid,
+          endpoints: new Map(),
+          mazeStart,
+          mazeEnd,
+        };
+      }
+    } catch (e) {
+      console.warn('Manuel maze yüklenemedi:', e);
+    }
+    
+    // Otomatik maze üretimi - şimdilik devre dışı bırakıldı
+    // JSON'da maze tanımı bulunamazsa geçici fallback olarak çalışır
+    console.warn(`[DEVRE DIŞI] Otomatik maze üretimi kullanılıyor: ${difficulty}. JSON'a manuel maze ekleyin.`);
     const mazeConfig = generateMaze(gridSize);
     const { grid, mazeStart, mazeEnd } = createGridFromMaze(mazeConfig, gridSize);
-    
     return {
       difficulty,
       mode: 'maze',
       grid,
-      endpoints: new Map(), // Maze'de endpoint yok
+      endpoints: new Map(),
       mazeStart,
       mazeEnd,
     };
