@@ -129,19 +129,21 @@ async function loadAllLevels(): Promise<LevelsJSON> {
 }
 
 // Rastgele puzzle seç - letters için
-function getRandomPuzzleConfig(
+function getPuzzleConfig(
   puzzles: PuzzleConfig[],
+  index: number,
 ): PuzzleConfig {
-  const randomIndex = Math.floor(Math.random() * puzzles.length);
-  return puzzles[randomIndex];
+  const safeIndex = Math.max(0, Math.min(index, puzzles.length - 1));
+  return puzzles[safeIndex];
 }
 
 // Rastgele puzzle seç - shapes için
-function getRandomShapePuzzleConfig(
+function getShapePuzzleConfig(
   puzzles: ShapePuzzleConfig[],
+  index: number,
 ): ShapePuzzleConfig {
-  const randomIndex = Math.floor(Math.random() * puzzles.length);
-  return puzzles[randomIndex];
+  const safeIndex = Math.max(0, Math.min(index, puzzles.length - 1));
+  return puzzles[safeIndex];
 }
 
 // Koordinatlardan grid oluştur - letter mode
@@ -255,7 +257,19 @@ const HARD_LEVELS: CellData[][][] = [
   ],
 ];
 
-export async function getLevel(difficulty: Difficulty, mode: GameMode = 'letters'): Promise<Level> {
+export async function getPuzzleCount(difficulty: Difficulty, mode: GameMode): Promise<number> {
+  try {
+    const levelsData = await loadAllLevels();
+    const difficultyLevels = levelsData[difficulty];
+    if (mode === 'maze') return difficultyLevels.maze?.length ?? 1;
+    if (mode === 'shapes') return difficultyLevels.shapes?.length ?? 1;
+    return difficultyLevels.letters.length;
+  } catch {
+    return 1;
+  }
+}
+
+export async function getLevel(difficulty: Difficulty, mode: GameMode = 'letters', puzzleIndex = 0): Promise<Level> {
   // Maze mode
   if (mode === 'maze') {
     const gridSize = MAZE_CONFIG[difficulty].gridSize;
@@ -265,8 +279,8 @@ export async function getLevel(difficulty: Difficulty, mode: GameMode = 'letters
       const levelsData = await loadAllLevels();
       const difficultyLevels = levelsData[difficulty];
       if (difficultyLevels.maze && difficultyLevels.maze.length > 0) {
-        const randomIndex = Math.floor(Math.random() * difficultyLevels.maze.length);
-        const mazeData = difficultyLevels.maze[randomIndex];
+        const safeIndex = Math.max(0, Math.min(puzzleIndex, difficultyLevels.maze.length - 1));
+        const mazeData = difficultyLevels.maze[safeIndex];
         const mazeConfig = parseMazeFromJSON(mazeData.grid as any, mazeData.start, mazeData.end);
         const { grid, mazeStart, mazeEnd } = createGridFromMaze(mazeConfig, gridSize);
         return {
@@ -313,13 +327,13 @@ export async function getLevel(difficulty: Difficulty, mode: GameMode = 'letters
     // Mode'a göre puzzle seç ve grid oluştur
     if (mode === 'shapes' && difficultyLevels.shapes && difficultyLevels.shapes.length > 0) {
       // Shape mode
-      const selectedPuzzle = getRandomShapePuzzleConfig(difficultyLevels.shapes);
+      const selectedPuzzle = getShapePuzzleConfig(difficultyLevels.shapes, puzzleIndex);
       const result = createGridFromShapeEndpoints(selectedPuzzle, gridSize);
       grid = result.grid;
       endpoints = result.endpoints;
     } else {
       // Letter mode (default)
-      const selectedPuzzle = getRandomPuzzleConfig(difficultyLevels.letters);
+      const selectedPuzzle = getPuzzleConfig(difficultyLevels.letters, puzzleIndex);
       const result = createGridFromEndpoints(selectedPuzzle, gridSize);
       grid = result.grid;
       endpoints = result.endpoints;
