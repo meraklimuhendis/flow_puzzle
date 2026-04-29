@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import DifficultySelector from './DifficultySelector';
 import ModeSelector from './ModeSelector';
+import PuzzleSelector from './PuzzleSelector';
 import Grid from './Grid';
 import Timer, { formatTime } from './Timer';
 import { Button } from '@/components/ui/button';
-import { Difficulty, GameMode, getLevel } from '@/logic/levels';
+import { Difficulty, GameMode, getLevel, getPuzzleCount } from '@/logic/levels';
 import { GameState, createInitialGameState } from '@/logic/gameEngine';
 import { Play } from 'lucide-react';
 
@@ -13,6 +14,8 @@ type GamePhase = 'not-started' | 'playing' | 'completed';
 export default function FlowPuzzle() {
   const [difficulty, setDifficulty] = useState<Difficulty>('easy');
   const [mode, setMode] = useState<GameMode>('letters');
+  const [puzzleIndex, setPuzzleIndex] = useState(0);
+  const [puzzleCount, setPuzzleCount] = useState(3);
   const [level, setLevel] = useState<any>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [key, setKey] = useState(0);
@@ -27,9 +30,13 @@ export default function FlowPuzzle() {
     const loadInitialLevel = async () => {
       setIsLoading(true);
       try {
-        const newLevel = await getLevel('easy', 'letters');
+        const [newLevel, count] = await Promise.all([
+          getLevel('easy', 'letters', 0),
+          getPuzzleCount('easy', 'letters'),
+        ]);
         setLevel(newLevel);
         setGameState(createInitialGameState(newLevel));
+        setPuzzleCount(count);
       } catch (error) {
         console.error('Failed to load initial level:', error);
       } finally {
@@ -39,14 +46,18 @@ export default function FlowPuzzle() {
     loadInitialLevel();
   }, []);
 
-  // Difficulty veya mode değiştiğinde
+  // Difficulty, mode veya puzzleIndex değiştiğinde
   useEffect(() => {
     const loadLevel = async () => {
       setIsLoading(true);
       try {
-        const newLevel = await getLevel(difficulty, mode);
+        const [newLevel, count] = await Promise.all([
+          getLevel(difficulty, mode, puzzleIndex),
+          getPuzzleCount(difficulty, mode),
+        ]);
         setLevel(newLevel);
         setGameState(createInitialGameState(newLevel));
+        setPuzzleCount(count);
         setKey((k) => k + 1);
         setGamePhase('not-started');
         setTime(0);
@@ -59,7 +70,7 @@ export default function FlowPuzzle() {
       }
     };
     loadLevel();
-  }, [difficulty, mode]);
+  }, [difficulty, mode, puzzleIndex]);
 
   // Detect puzzle completion
   useEffect(() => {
@@ -72,10 +83,16 @@ export default function FlowPuzzle() {
 
   const handleDifficultyChange = useCallback((newDifficulty: Difficulty) => {
     setDifficulty(newDifficulty);
+    setPuzzleIndex(0);
   }, []);
 
   const handleModeChange = useCallback((newMode: GameMode) => {
     setMode(newMode);
+    setPuzzleIndex(0);
+  }, []);
+
+  const handlePuzzleSelect = useCallback((index: number) => {
+    setPuzzleIndex(index);
   }, []);
 
   const handleGameStateChange = useCallback((newState: GameState) => {
@@ -90,7 +107,7 @@ export default function FlowPuzzle() {
   const handleReset = useCallback(async () => {
     setIsLoading(true);
     try {
-      const newLevel = await getLevel(difficulty, mode);
+      const newLevel = await getLevel(difficulty, mode, puzzleIndex);
       setLevel(newLevel);
       setGameState(createInitialGameState(newLevel));
       setKey((k) => k + 1);
@@ -103,7 +120,7 @@ export default function FlowPuzzle() {
     } finally {
       setIsLoading(false);
     }
-  }, [difficulty, mode]);
+  }, [difficulty, mode, puzzleIndex]);
 
   const handleTimeUpdate = useCallback((newTime: number) => {
     setTime(newTime);
@@ -148,6 +165,13 @@ export default function FlowPuzzle() {
         <DifficultySelector
           currentDifficulty={difficulty}
           onSelect={handleDifficultyChange}
+          disabled={gamePhase === 'playing'}
+        />
+
+        <PuzzleSelector
+          currentIndex={puzzleIndex}
+          total={puzzleCount}
+          onSelect={handlePuzzleSelect}
           disabled={gamePhase === 'playing'}
         />
 
